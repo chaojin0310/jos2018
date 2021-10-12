@@ -102,8 +102,16 @@ boot_alloc(uint32_t n)
 	// to a multiple of PGSIZE.
 	//
 	// LAB 2: Your code here.
-
-	return NULL;
+	result = nextfree;
+	// Allocate n pages, round up to the nearest multiple of PGSIZE
+	if (n != 0) {
+		nextfree = ROUNDUP((char *)(nextfree + n), PGSIZE);
+	}
+	// Out of Memory!
+	if ((uint32_t)nextfree - KERNBASE > (npages * PGSIZE)) {
+		panic("Out of memory!\n");
+	}
+	return result;
 }
 
 // Set up a two-level page table:
@@ -125,12 +133,13 @@ mem_init(void)
 	i386_detect_memory();
 
 	// Remove this line when you're ready to test this function.
-	panic("mem_init: This function is not finished\n");
+	// panic("mem_init: This function is not finished\n");
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
 	kern_pgdir = (pde_t *) boot_alloc(PGSIZE);
 	memset(kern_pgdir, 0, PGSIZE);
+	// cprintf("%x\n", kern_pgdir);
 
 	//////////////////////////////////////////////////////////////////////
 	// Recursively insert PD in itself as a page table, to form
@@ -140,6 +149,7 @@ mem_init(void)
 
 	// Permissions: kernel R, user R
 	kern_pgdir[PDX(UVPT)] = PADDR(kern_pgdir) | PTE_U | PTE_P;
+	// cprintf("%x %x\n", UVPT, PDX(UVPT));
 
 	//////////////////////////////////////////////////////////////////////
 	// Allocate an array of npages 'struct PageInfo's and store it in 'pages'.
@@ -148,7 +158,9 @@ mem_init(void)
 	// array.  'npages' is the number of physical pages in memory.  Use memset
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
-
+	pages = (struct PageInfo *)boot_alloc(npages*(sizeof(struct PageInfo)));
+	memset(pages, 0, npages*sizeof(struct PageInfo));
+	// cprintf("%x %d %d\n", pages, sizeof(struct PageInfo), npages);
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -252,10 +264,20 @@ page_init(void)
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
 	size_t i;
+	size_t io_mem = PGNUM(IOPHYSMEM);
+	size_t ext_mem = PGNUM(EXTPHYSMEM);
 	for (i = 0; i < npages; i++) {
-		pages[i].pp_ref = 0;
-		pages[i].pp_link = page_free_list;
-		page_free_list = &pages[i];
+		if ((i == 0) || (i >= io_mem && i <= ext_mem)) {
+			// non-free pages
+			pages[0].pp_ref = 1;
+			pages[0].pp_link = NULL;
+		}
+		else {
+			// free pages
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+		}
 	}
 }
 
