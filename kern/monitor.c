@@ -120,9 +120,13 @@ uint32_t dec2uint(char *xbuf) {
 
 // Print pte's PA and permissions in a beautiful format
 void print_pte(pte_t *pte) {
+	// cprintf("%x %x\n", pte, *pte);
 	if (pte && (*pte & PTE_P)) {
 		cprintf("PA: 0x%08x\tPTE_W: %d\tPTE_U: %d\n", 
 				PTE_ADDR(*pte), !!(*pte & PTE_W), !!(*pte & PTE_U));
+	}
+	else if ((uint32_t)pte == (uint32_t)kern_pgdir) { // corner case
+		cprintf("PA: 0x%08x\tPTE_W: 0\tPTE_U: 0\n", PADDR(kern_pgdir));
 	}
 	else {
 		cprintf("PA: No Mapping\n");
