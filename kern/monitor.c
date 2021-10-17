@@ -120,7 +120,6 @@ uint32_t dec2uint(char *xbuf) {
 
 // Print pte's PA and permissions in a beautiful format
 void print_pte(pte_t *pte) {
-	cprintf("%x %x %x\n", pte, *pte, kern_pgdir[PTX(UVPT)]);
 	if (pte && (*pte & PTE_P)) {
 		cprintf("PA: 0x%08x\tPTE_W: %d\tPTE_U: %d\n", 
 				PTE_ADDR(*pte), !!(*pte & PTE_W), !!(*pte & PTE_U));
