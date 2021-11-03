@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "env.h": "c",
+        "trap.h": "c",
+        "elf.h": "c"
+    }
+}
