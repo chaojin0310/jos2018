@@ -59,24 +59,25 @@ static const char *trapname(int trapno)
 }
 
 
-void trap_handler0();
-void trap_handler1();
-void trap_handler2();
-void trap_handler3();
-void trap_handler4();
-void trap_handler5();
-void trap_handler6();
-void trap_handler7();
-void trap_handler8();
-void trap_handler10();
-void trap_handler11();
-void trap_handler12();
-void trap_handler13();
-void trap_handler14();
-void trap_handler16();
-void trap_handler17();
-void trap_handler18();
-void trap_handler19();
+// void trap_handler0();
+// void trap_handler1();
+// void trap_handler2();
+// void trap_handler3();
+// void trap_handler4();
+// void trap_handler5();
+// void trap_handler6();
+// void trap_handler7();
+// void trap_handler8();
+// void trap_handler10();
+// void trap_handler11();
+// void trap_handler12();
+// void trap_handler13();
+// void trap_handler14();
+// void trap_handler16();
+// void trap_handler17();
+// void trap_handler18();
+// void trap_handler19();
+void trap_handler_syscall();
 
 
 void
@@ -86,24 +87,38 @@ trap_init(void)
 
 	// LAB 3: Your code here.
 
-	SETGATE(idt[T_DIVIDE], 1, GD_KT, trap_handler0, 0);
-	SETGATE(idt[T_DEBUG], 1, GD_KT, trap_handler1, 0);
-	SETGATE(idt[T_NMI], 1, GD_KT, trap_handler2, 0);
-	SETGATE(idt[T_BRKPT], 1, GD_KT, trap_handler3, 0);
-	SETGATE(idt[T_OFLOW], 1, GD_KT, trap_handler4, 0);
-	SETGATE(idt[T_BOUND], 1, GD_KT, trap_handler5, 0);
-	SETGATE(idt[T_ILLOP], 1, GD_KT, trap_handler6, 0);
-	SETGATE(idt[T_DEVICE], 1, GD_KT, trap_handler7, 0);
-	SETGATE(idt[T_DBLFLT], 1, GD_KT, trap_handler8, 0);
-	SETGATE(idt[T_TSS], 1, GD_KT, trap_handler10, 0);
-	SETGATE(idt[T_SEGNP], 1, GD_KT, trap_handler11, 0);
-	SETGATE(idt[T_STACK], 1, GD_KT, trap_handler12, 0);
-	SETGATE(idt[T_GPFLT], 1, GD_KT, trap_handler13, 0);
-	SETGATE(idt[T_PGFLT], 1, GD_KT, trap_handler14, 0);
-	SETGATE(idt[T_FPERR], 1, GD_KT, trap_handler16, 0);
-	SETGATE(idt[T_ALIGN], 1, GD_KT, trap_handler17, 0);
-	SETGATE(idt[T_MCHK], 1, GD_KT, trap_handler18, 0);
-	SETGATE(idt[T_SIMDERR], 1, GD_KT, trap_handler19, 0);
+	// SETGATE(idt[T_DIVIDE], 1, GD_KT, trap_handler0, 0);
+	// SETGATE(idt[T_DEBUG], 1, GD_KT, trap_handler1, 0);
+	// SETGATE(idt[T_NMI], 1, GD_KT, trap_handler2, 0);
+	// SETGATE(idt[T_BRKPT], 1, GD_KT, trap_handler3, 0);
+	// SETGATE(idt[T_OFLOW], 1, GD_KT, trap_handler4, 0);
+	// SETGATE(idt[T_BOUND], 1, GD_KT, trap_handler5, 0);
+	// SETGATE(idt[T_ILLOP], 1, GD_KT, trap_handler6, 0);
+	// SETGATE(idt[T_DEVICE], 1, GD_KT, trap_handler7, 0);
+	// SETGATE(idt[T_DBLFLT], 1, GD_KT, trap_handler8, 0);
+	// SETGATE(idt[T_TSS], 1, GD_KT, trap_handler10, 0);
+	// SETGATE(idt[T_SEGNP], 1, GD_KT, trap_handler11, 0);
+	// SETGATE(idt[T_STACK], 1, GD_KT, trap_handler12, 0);
+	// SETGATE(idt[T_GPFLT], 1, GD_KT, trap_handler13, 0);
+	// SETGATE(idt[T_PGFLT], 1, GD_KT, trap_handler14, 0);
+	// SETGATE(idt[T_FPERR], 1, GD_KT, trap_handler16, 0);
+	// SETGATE(idt[T_ALIGN], 1, GD_KT, trap_handler17, 0);
+	// SETGATE(idt[T_MCHK], 1, GD_KT, trap_handler18, 0);
+	// SETGATE(idt[T_SIMDERR], 1, GD_KT, trap_handler19, 0);
+	extern void (*trap_entry_arr[])();
+	int i;
+	for (i = 0; i <= 19; i++) {
+		if (i == 9 || i == 15) {
+			continue;
+		}
+		else if (i == T_BRKPT) {
+			SETGATE(idt[i], 1, GD_KT, trap_entry_arr[i], 3);
+		}
+		else {
+			SETGATE(idt[i], 1, GD_KT, trap_entry_arr[i], 0);
+		}
+	}
+	SETGATE(idt[T_SYSCALL], 0, GD_KT, trap_handler_syscall, 3);
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -183,6 +198,27 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+	int32_t ret;
+	switch (tf->tf_trapno) {
+		case T_PGFLT:
+			page_fault_handler(tf);
+			return;
+		case T_BRKPT:
+			monitor(tf);
+			return;
+		case T_SYSCALL:
+			ret = syscall(
+				tf->tf_regs.reg_eax,
+				tf->tf_regs.reg_edx,
+				tf->tf_regs.reg_ecx,
+				tf->tf_regs.reg_ebx,
+				tf->tf_regs.reg_edi,
+				tf->tf_regs.reg_esi);
+			tf->tf_regs.reg_eax = ret;
+			if (ret < 0)
+				panic("trap_dispatch syscall: %e\n", ret);
+			return;
+	}
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
@@ -244,6 +280,9 @@ page_fault_handler(struct Trapframe *tf)
 	// Handle kernel-mode page faults.
 
 	// LAB 3: Your code here.
+	if ((tf->tf_cs & 0x3) == 0) {
+		panic("page fault in kernel mode! fault_va:%x\n", fault_va);
+	}
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.

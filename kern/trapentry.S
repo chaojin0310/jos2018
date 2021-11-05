@@ -10,6 +10,7 @@
 # exceptions/interrupts
 ###################################################################
 
+
 /* TRAPHANDLER defines a globally-visible function for handling a trap.
  * It pushes a trap number onto the stack, then jumps to _alltraps.
  * Use TRAPHANDLER for traps where the CPU automatically pushes an error code.
@@ -36,35 +37,72 @@
 	.globl name;							\
 	.type name, @function;						\
 	.align 2;							\
-	name:								\
+	name:		\
 	pushl $0;							\
 	pushl $(num);							\
 	jmp _alltraps
 
-.text
 
+#define MY_TRAPHANDLER(name, num)		\
+.text;		\
+	.globl name;		\
+	.type name, @function;		\
+	.align 2;		\
+	name:		\
+	pushl $(num);		\
+	jmp _alltraps;		\
+.data;		\
+	.long name
+
+
+#define MY_TRAPHANDLER_NOEC(name, num)		\
+.text;		\
+	.globl name;		\
+	.type name, @function;		\
+	.align 2;		\
+	name:		\
+	pushl $0;		\
+	pushl $(num);		\
+	jmp _alltraps;		\
+.data;		\
+	.long name
+
+#define EMPTY_SLOT()		\
+.data;		\
+	.long 0
+
+.data
+	.globl trap_entry_arr
+	trap_entry_arr:
+
+.text
 /*
  * Lab 3: Your code here for generating entry points for the different traps.
  */
 
-TRAPHANDLER_NOEC(trap_handler0, T_DIVIDE)
-TRAPHANDLER_NOEC(trap_handler1, T_DEBUG)
-TRAPHANDLER_NOEC(trap_handler2, T_NMI)
-TRAPHANDLER_NOEC(trap_handler3, T_BRKPT)
-TRAPHANDLER_NOEC(trap_handler4, T_OFLOW)
-TRAPHANDLER_NOEC(trap_handler5, T_BOUND)
-TRAPHANDLER_NOEC(trap_handler6, T_ILLOP)
-TRAPHANDLER_NOEC(trap_handler7, T_DEVICE)
-TRAPHANDLER(trap_handler8, T_DBLFLT)
-TRAPHANDLER(trap_handler10, T_TSS)
-TRAPHANDLER(trap_handler11, T_SEGNP)
-TRAPHANDLER(trap_handler12, T_STACK)
-TRAPHANDLER(trap_handler13, T_GPFLT)
-TRAPHANDLER(trap_handler14, T_PGFLT)
-TRAPHANDLER_NOEC(trap_handler16, T_FPERR)
-TRAPHANDLER(trap_handler17, T_ALIGN)
-TRAPHANDLER_NOEC(trap_handler18, T_MCHK)
-TRAPHANDLER_NOEC(trap_handler19, T_SIMDERR)
+MY_TRAPHANDLER_NOEC(trap_handler0, T_DIVIDE)
+MY_TRAPHANDLER_NOEC(trap_handler1, T_DEBUG)
+MY_TRAPHANDLER_NOEC(trap_handler2, T_NMI)
+MY_TRAPHANDLER_NOEC(trap_handler3, T_BRKPT)
+MY_TRAPHANDLER_NOEC(trap_handler4, T_OFLOW)
+MY_TRAPHANDLER_NOEC(trap_handler5, T_BOUND)
+MY_TRAPHANDLER_NOEC(trap_handler6, T_ILLOP)
+MY_TRAPHANDLER_NOEC(trap_handler7, T_DEVICE)
+MY_TRAPHANDLER(trap_handler8, T_DBLFLT)
+EMPTY_SLOT()
+MY_TRAPHANDLER(trap_handler10, T_TSS)
+MY_TRAPHANDLER(trap_handler11, T_SEGNP)
+MY_TRAPHANDLER(trap_handler12, T_STACK)
+MY_TRAPHANDLER(trap_handler13, T_GPFLT)
+MY_TRAPHANDLER(trap_handler14, T_PGFLT)
+EMPTY_SLOT()
+MY_TRAPHANDLER_NOEC(trap_handler16, T_FPERR)
+MY_TRAPHANDLER(trap_handler17, T_ALIGN)
+MY_TRAPHANDLER_NOEC(trap_handler18, T_MCHK)
+MY_TRAPHANDLER_NOEC(trap_handler19, T_SIMDERR)
+
+TRAPHANDLER_NOEC(trap_handler_syscall, T_SYSCALL)
+
 
 /*
  * Lab 3: Your code here for _alltraps
