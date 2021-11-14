@@ -44,18 +44,21 @@
 
 
 #define MY_TRAPHANDLER(name, num)		\
+.data;		\
+	.long name;		\
 .text;		\
 	.globl name;		\
 	.type name, @function;		\
 	.align 2;		\
 	name:		\
 	pushl $(num);		\
-	jmp _alltraps;		\
-.data;		\
-	.long name
+	jmp _alltraps
+
 
 
 #define MY_TRAPHANDLER_NOEC(name, num)		\
+.data;		\
+	.long name;		\
 .text;		\
 	.globl name;		\
 	.type name, @function;		\
@@ -63,9 +66,8 @@
 	name:		\
 	pushl $0;		\
 	pushl $(num);		\
-	jmp _alltraps;		\
-.data;		\
-	.long name
+	jmp _alltraps
+
 
 #define EMPTY_SLOT()		\
 .data;		\
