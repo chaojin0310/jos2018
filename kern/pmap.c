@@ -327,7 +327,7 @@ page_init(void)
 	size_t ext_mem = PGNUM(EXTPHYSMEM);
 	size_t preserved_mem = PGNUM(PADDR(boot_alloc(0)));
 	for (i = 0; i < npages; i++) {
-		if ((i == 0) || (i >= io_mem && i <= preserved_mem) || (i == MPENTRY_PADDR / PGSIZE)) {
+		if ((i == 0) || (i >= io_mem && i <= preserved_mem) || (i == PGNUM(MPENTRY_PADDR))) {
 			// non-free pages: page 0, IO hole, 
 			pages[i].pp_ref = 1;
 			pages[i].pp_link = NULL;
