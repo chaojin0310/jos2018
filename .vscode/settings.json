@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "env.h": "c",
+        "trap.h": "c",
+        "elf.h": "c",
+        "monitor.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
+}
