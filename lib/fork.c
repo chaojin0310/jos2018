@@ -65,14 +65,16 @@ duppage(envid_t envid, unsigned pn)
 
 	// LAB 4: Your code here.
 	void *addr = (void *)(pn * PGSIZE);
-	if ((uvpt[pn] & PTE_W) || (uvpt[pn] & PTE_COW)) {
+	if ((uvpt[pn] & PTE_SHARE)) {  // shared pte
+		if ((r = sys_page_map(0, addr, envid, addr, PTE_SYSCALL)) < 0)
+			panic("duppage/sys_page_map SHARE: %e\n", r);
+	} else if ((uvpt[pn] & PTE_W) || (uvpt[pn] & PTE_COW)) {
 		if ((r = sys_page_map(0, addr, envid, addr, PTE_COW | PTE_U | PTE_P)) < 0)
 			panic("duppage/sys_page_map COW dst: %e\n", r);
 		// our mapping should be marked COW since it might be PTE_W
 		if ((r = sys_page_map(0, addr, 0, addr, PTE_COW | PTE_U | PTE_P)) < 0)
 			panic("duppage/sys_page_map COW src: %e\n", r);
-	}
-	else {
+	} else {
 		if ((r = sys_page_map(0, addr, envid, addr, PTE_U | PTE_P)) < 0)
 			panic("duppage/sys_page_map: %e\n", r);
 	}

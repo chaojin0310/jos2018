@@ -411,6 +411,10 @@ env_create(uint8_t *binary, enum EnvType type)
 	int r = env_alloc(&e, 0);
 	if (r < 0)
 		panic("env_create: %e\n", r);
+	if (type == ENV_TYPE_FS) {
+		cprintf("Set IO flag!\n");
+		e->env_tf.tf_eflags |= FL_IOPL_MASK;
+	}
 	load_icode(e, binary);
 	e->env_type = type;
 }

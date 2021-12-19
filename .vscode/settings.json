@@ -3,7 +3,11 @@
         "env.h": "c",
         "trap.h": "c",
         "elf.h": "c",
-        "monitor.h": "c"
+        "monitor.h": "c",
+        "string.h": "c",
+        "partition.h": "c",
+        "fs.h": "c",
+        "lib.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

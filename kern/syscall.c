@@ -56,10 +56,10 @@ sys_env_destroy(envid_t envid)
 
 	if ((r = envid2env(envid, &e, 1)) < 0)
 		return r;
-	if (e == curenv)
-		cprintf("[%08x] exiting gracefully\n", curenv->env_id);
-	else
-		cprintf("[%08x] destroying %08x\n", curenv->env_id, e->env_id);
+	// if (e == curenv)
+	// 	cprintf("[%08x] exiting gracefully\n", curenv->env_id);
+	// else
+	// 	cprintf("[%08x] destroying %08x\n", curenv->env_id, e->env_id);
 	env_destroy(e);
 	return 0;
 }
@@ -135,7 +135,15 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 	// LAB 5: Your code here.
 	// Remember to check whether the user has supplied us with a good
 	// address!
-	panic("sys_env_set_trapframe not implemented");
+	struct Env *e;
+	int r = envid2env(envid, &e, 1);
+	if (r)
+		return r;
+	e->env_tf = *tf;
+	e->env_tf.tf_cs = GD_UT | 0x3;  // protection level 3 (CPL 3)
+	e->env_tf.tf_eflags |= FL_IF;  // enable interrupt
+	e->env_tf.tf_eflags &= ~FL_IOPL_MASK;  // IOPL of 0
+	return 0;
 }
 
 // Set the page fault upcall for 'envid' by modifying the corresponding struct
@@ -323,22 +331,34 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
     if (!e->env_ipc_recving) 
 		return -E_IPC_NOT_RECV;
     if ((uintptr_t)srcva < UTOP) {
-        if(srcva != ROUNDDOWN(srcva, PGSIZE)) 
+        if(srcva != ROUNDDOWN(srcva, PGSIZE)) {
+			// cprintf("srcva\n");
 			return -E_INVAL;
+		}
         pte_t *pte;
         struct PageInfo *pp = page_lookup(curenv->env_pgdir, srcva, &pte);
-        if (!pp) 
+        if (!pp) {
+			// cprintf("!pp\n");
 			return -E_INVAL;
+		}
 		// apprapriate permission
-		if ((perm & (PTE_U | PTE_P)) != (PTE_U | PTE_P))
+		if ((perm & (PTE_U | PTE_P)) != (PTE_U | PTE_P)) {
+			// cprintf("perm1\n");
 			return -E_INVAL;
-		if (perm & ~PTE_SYSCALL)
+		}
+		if (perm & ~PTE_SYSCALL) {
+			// cprintf("perm2\n");
 			return -E_INVAL;
+		}
 		// perm do not exceed *pte
-        if ((*pte & perm) != perm) 
+        // if ((*pte & perm) != perm) {
+		// 	cprintf("perm3\n");
+		// 	return -E_INVAL;
+		// }
+        if ((perm & PTE_W) && !(*pte & PTE_W)) {
+			// cprintf("perm4\n");
 			return -E_INVAL;
-        if ((perm & PTE_W) && !(*pte & PTE_W)) 
-			return -E_INVAL;
+		}
         if ((uintptr_t)(e->env_ipc_dstva) < UTOP) {
             if ((r = page_insert(e->env_pgdir, pp, e->env_ipc_dstva, perm)) < 0) 
 				return r;
@@ -415,6 +435,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 			return sys_ipc_recv((void *)a1);
 		case SYS_ipc_try_send:
 			return sys_ipc_try_send(a1, a2, (void *)a3, a4);
+		case SYS_env_set_trapframe:
+			return sys_env_set_trapframe(a1, (struct Trapframe *)a2);
 		default:
 			return -E_INVAL;
 	}
